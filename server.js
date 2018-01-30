@@ -1,30 +1,70 @@
 
 // Load dependencies
 
-const aws = require('aws-sdk');
 const express = require('express');
 const multer = require('multer');
-const multerS3 = require('multer-s3');
 const imager = require('multer-imager');
 const app = express();
 
-// Set S3 endpoint to Object Storage
-
-const s3 = new aws.S3();
-
 // Change bucket property to your Object Storage name
 
-const upload = multer({
-  storage: multerS3({
-    s3: s3,
+const fileObj = {
+  'image/png': '.png',
+  'image/jpeg': '.jpeg',
+  'image/jpg': '.jpg'
+};
+const name = Math.floor(Math.random() * 100);
+
+const upload =
+  multer({
+    storage: imager({
+      dirname: 'upload',
+      bucket: 'kamil-aws',
+      accessKeyId: 'AKIAIXYCMBSRMZLJL4AA',
+      secretAccessKey: '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',
+      region: 'us-east-2',
+      filename: (req, file, cb) => {
+        console.log(file)
+        cb(null, `${name}_thumb${fileObj[file.mimetype]}`)
+      },
+      gm: {
+        width: 200,
+        height: 200,
+        options: '!',
+      },
+      s3: {
+        Metadata: {
+          'acl': 'public-read'
+        }
+      },
+    })
+  }).array('upload', 2);
+
+
+const upload_full =
+multer({
+  storage: imager({
+    dirname: 'upload',
     bucket: 'kamil-aws',
-    acl: 'public-read',
-    key: (req, file, cb) => {
-      console.log(file);
-      cb(null, file.originalname);
-    }
+    accessKeyId: 'AKIAIXYCMBSRMZLJL4AA',
+    secretAccessKey: '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',
+    region: 'us-east-2',
+    filename: (req, file, cb) => {
+      console.log(file)
+      cb(null, `${name}_full${fileObj[file.mimetype]}`)
+    },
+    gm: {
+      width: 500,
+      height: 500,
+      options: '!',
+    },
+    s3: {
+      Metadata: {
+        'acl': 'public-read'
+      }
+    },
   })
-}).array('upload', 1);
+}).array('upload', 2);
 
 // Views in piblic directory
 
@@ -51,8 +91,15 @@ app.post('/upload', (req, res, next) => {
       return res.redirect('/error/');
     }
     console.log('File uploaded successfully');
-    res.redirect('/success');
   });
+  upload_full(req, res, (err) => {
+    if (err) {
+      console.log(err);
+      return res.redirect('/error/');
+    }
+    console.log('File uploaded successfully');
+    res.redirect('/success');
+  })
 });
 
 app.listen(3001, () => console.log('Server listening on port 3001'));
